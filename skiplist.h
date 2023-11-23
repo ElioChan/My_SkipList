@@ -3,7 +3,13 @@
 #include <cmath>
 #include <mutex>
 
+#ifdef DEBUG
+#define DBGprint(...) printf(__VA_ARGS__)
+#else 
+#define DBGprint(...) 
+#endif
 
+std::mutex mtx;
 
 /*
     跳表中的节点 结构
@@ -145,10 +151,12 @@ template <typename K, typename V>
 bool SkipList<K, V>::search_element(K key) {
     // 查找元素
     // 从最高层开始遍历元素 若cur->key < key则继续向右 进入下一层 直到最底层
-    std::cout << "Searching element ------------- " << std::endl;
+    // DBGprint("Searching element ------------- ");
+    // std::cout << "Searching element ------------- " << std::endl;
 
     if(this->_element_count == 0) {
-        std::cout << "Empty database now, Not Found Key!" << std::endl;
+        // DBGprint("Empty database now, Not Found Key!");
+        // std::cout << "Empty database now, Not Found Key!" << std::endl;
         return false;
     }
 
@@ -162,11 +170,11 @@ bool SkipList<K, V>::search_element(K key) {
     // 遍历至level 0中最后一个小于key 的元素 所以需要判断下一个元素是否等于查找的元素
     cur = cur->forward[0];
     if(cur && cur->get_key() == key) {
-        std::cout << "Found Key: " << cur->get_val() << ", Value: " << cur->get_val() <<  std::endl;
+        // std::cout << "Found Key: " << cur->get_val() << ", Value: " << cur->get_val() <<  std::endl;
         return true;
     }
 
-    std::cout << "Not Found Key!" << std::endl;
+    // std::cout << "Not Found Key!" << std::endl;
     return false;
 }
 
@@ -178,6 +186,8 @@ bool SkipList<K, V>::search_element(K key) {
 */
 template <typename K, typename V>
 int SkipList<K, V>::insert_element(K key, V value) {
+    
+    mtx.lock();
 
     Node<K, V> *cur = this->_header;
 
@@ -195,7 +205,8 @@ int SkipList<K, V>::insert_element(K key, V value) {
     cur = cur->forward[0];
     // 判断是否已经存在key
     if(cur != nullptr && cur->get_key() == key) {
-        std::cout << "key: "<< key << " already exited!" << std::endl;
+        // std::cout << "key: "<< key << " already exited!" << std::endl;
+        mtx.unlock();
         return 1;
     }
     // 若不存在 则创建节点 并更改update数组中的forward指针 插入新节点
@@ -214,11 +225,11 @@ int SkipList<K, V>::insert_element(K key, V value) {
             node->forward[i] = update[i]->forward[i];
             update[i]->forward[i] = node;
         }
-        std::cout << "Successfully inserted key: " << key << ", val: \"" << value << "\" into skiplist!" << std::endl;
+        // std::cout << "Successfully inserted key: " << key << ", val: \"" << value << "\" into skiplist!" << std::endl;
         this->_element_count++;
     }
 
-
+    mtx.unlock();
     return 0;
     
 }
@@ -231,6 +242,8 @@ int SkipList<K, V>::insert_element(K key, V value) {
 template <typename K, typename V>
 void SkipList<K, V>::delete_element(K key) {
     
+    mtx.lock();
+
     Node<K, V>* cur = this->_header;
 
     Node<K, V>* update[_max_level + 1];
@@ -263,6 +276,7 @@ void SkipList<K, V>::delete_element(K key) {
         _element_count--;
     }
 
+    mtx.unlock();
     return ;
 }
 
